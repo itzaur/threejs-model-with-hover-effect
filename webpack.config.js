@@ -11,6 +11,10 @@ module.exports = {
 
   devtool: "source-map",
 
+  output: {
+    assetModuleFilename: "images/[hash][ext][query]",
+  },
+
   devServer: {
     static: "./dist",
     devMiddleware: {
@@ -36,6 +40,10 @@ module.exports = {
           "postcss-loader",
           "sass-loader",
         ],
+      },
+      {
+        test: /\.(png|jpe?g|gif|svg|webp)/i,
+        type: "asset/resource",
       },
     ],
   },
