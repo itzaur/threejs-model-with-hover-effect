@@ -12,6 +12,27 @@ export default class Sketch {
     this.width = window.innerWidth;
     this.height = window.innerHeight;
 
+    //Colors
+    const color1 = getComputedStyle(document.documentElement).getPropertyValue(
+      "--clr-1"
+    );
+    const color2 = getComputedStyle(document.documentElement).getPropertyValue(
+      "--clr-2"
+    );
+    const color3 = getComputedStyle(document.documentElement).getPropertyValue(
+      "--clr-3"
+    );
+    const color4 = getComputedStyle(document.documentElement).getPropertyValue(
+      "--clr-4"
+    );
+
+    this.colors = [
+      new THREE.Color(color1),
+      new THREE.Color(color2),
+      new THREE.Color(color3),
+      new THREE.Color(color4),
+    ];
+
     this.resize = () => this.onResize();
     this.mousemove = (e) => this.onMousemove(e);
   }
@@ -75,6 +96,9 @@ export default class Sketch {
           wireframe: true,
           vertexShader: require("./static/shaders/brain.vertex.glsl"),
           fragmentShader: require("./static/shaders/brain.fragment.glsl"),
+          uniforms: {
+            uColor: { value: new THREE.Color() },
+          },
         });
         this.count = brain.geometry.attributes.position.count;
 
@@ -99,6 +123,13 @@ export default class Sketch {
           dummy.updateMatrix();
 
           this.instancedMesh.setMatrixAt(i / 3, dummy.matrix);
+
+          const colorIndex = THREE.MathUtils.randInt(0, this.colors.length - 1);
+          this.instancedMesh.setUniformAt(
+            "uColor",
+            i / 3,
+            this.colors[colorIndex]
+          );
         }
 
         resolve();
