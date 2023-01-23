@@ -26,6 +26,7 @@
   },
   "dependencies": {
     "gsap": "^3.11.4",
-    "three": "^0.148.0"
+    "three": "^0.148.0",
+    "three-instanced-uniforms-mesh": "^0.47.0"
   }
 }

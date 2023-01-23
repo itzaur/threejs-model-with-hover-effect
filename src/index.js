@@ -1,6 +1,7 @@
 import "./styles/index.scss";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
+import { InstancedUniformsMesh } from "three-instanced-uniforms-mesh";
 import { gsap } from "gsap";
 
 export default class Sketch {
@@ -66,7 +67,39 @@ export default class Sketch {
     return new Promise((resolve) => {
       this.gltfLoader.load("models/brain.glb", (gltf) => {
         const brain = gltf.scene.children[0];
-        this.scene.add(brain);
+        // this.scene.add(brain);
+
+        // this.geometry = new THREE.ConeGeometry(0.005, 0.01, 10);
+        this.geometry = new THREE.IcosahedronGeometry(0.005, 1);
+        this.material = new THREE.ShaderMaterial({
+          wireframe: true,
+          vertexShader: require("./static/shaders/brain.vertex.glsl"),
+          fragmentShader: require("./static/shaders/brain.fragment.glsl"),
+        });
+        this.count = brain.geometry.attributes.position.count;
+
+        this.instancedMesh = new InstancedUniformsMesh(
+          this.geometry,
+          this.material,
+          this.count
+        );
+
+        this.scene.add(this.instancedMesh);
+
+        const dummy = new THREE.Object3D();
+
+        const positions = brain.geometry.attributes.position.array;
+        for (let i = 0; i < positions.length; i += 3) {
+          dummy.position.set(
+            positions[i + 0],
+            positions[i + 1],
+            positions[i + 2]
+          );
+
+          dummy.updateMatrix();
+
+          this.instancedMesh.setMatrixAt(i / 3, dummy.matrix);
+        }
 
         resolve();
       });
