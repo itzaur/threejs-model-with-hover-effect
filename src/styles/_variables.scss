@@ -1,7 +1,9 @@
 :root {
-  --clr-1: #eb455f;
+  --clr-1: #ed455e;
   --clr-2: #fcffe7;
   --clr-3: #bad7e9;
   --clr-4: #2b3467;
+  --clr-4a: #2b3467da;
   --clr-5: #066cac;
+  --gradient: radial-gradient(circle, var(--clr-4a) 20%, var(--clr-4) 65%);
 }

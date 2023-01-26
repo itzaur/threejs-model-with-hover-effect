@@ -9,5 +9,25 @@
 }
 
 body {
-  background: radial-gradient(circle, var(--clr-5) 0%, var(--clr-4) 65%);
+  height: 100vh;
+  background: var(--gradient);
+  overflow: hidden;
+}
+
+#app {
+  height: 100%;
+  width: 100%;
+
+  canvas {
+    outline: none;
+  }
+}
+
+.lil-gui.root {
+  --width: 300px;
+
+  @media (max-width: 767px) {
+    --width: 200px;
+    --name-width: 25%;
+  }
 }

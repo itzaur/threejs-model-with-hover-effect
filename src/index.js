@@ -3,14 +3,15 @@ import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 import { InstancedUniformsMesh } from "three-instanced-uniforms-mesh";
 import { gsap } from "gsap";
+import * as dat from "lil-gui";
 
 export default class Sketch {
-  constructor(canvas) {
-    this.canvas = canvas;
+  constructor(container) {
+    this.container = document.querySelector(container);
 
     //Sizes
-    this.width = window.innerWidth;
-    this.height = window.innerHeight;
+    this.width = this.container.clientWidth;
+    this.height = this.container.clientHeight;
 
     //Colors
     const color1 = getComputedStyle(document.documentElement).getPropertyValue(
@@ -25,17 +26,31 @@ export default class Sketch {
     const color4 = getComputedStyle(document.documentElement).getPropertyValue(
       "--clr-4"
     );
+    const color5 = getComputedStyle(document.documentElement).getPropertyValue(
+      "--clr-5"
+    );
+
+    const value1 = parseInt(color1.replace("#", "0x"), 16);
+    const value2 = parseInt(color2.replace("#", "0x"), 16);
+    const value3 = parseInt(color3.replace("#", "0x"), 16);
+    const value4 = parseInt(color4.replace("#", "0x"), 16);
 
     this.colors = [
-      new THREE.Color(color1),
-      new THREE.Color(color2),
-      new THREE.Color(color3),
-      new THREE.Color(color4),
+      new THREE.Color(value1),
+      new THREE.Color(value2),
+      new THREE.Color(value3),
+      new THREE.Color(value4),
     ];
 
-    //Hover parameter
+    this.debugObject = {};
+    this.debugObject.colorBg = color4;
+
+    //Hover parameters
+    this.hover = false;
+
     this.uniforms = {
       uHover: 0,
+      maxHover: 1,
     };
 
     this.resize = () => this.onResize();
@@ -49,6 +64,8 @@ export default class Sketch {
     this.createRenderer();
     this.createLoader();
     this.createRaycaster();
+    this.checkMobile();
+    this.addDebugPanel();
 
     this.loadModel().then(() => {
       this.renderer.setAnimationLoop(() => {
@@ -69,17 +86,18 @@ export default class Sketch {
       0.1,
       100
     );
-    this.camera.position.set(0, 0, 4);
+    this.camera.position.set(0, 0, 1.2);
   }
 
   createRenderer() {
     this.renderer = new THREE.WebGLRenderer({
-      canvas: this.canvas,
+      // canvas: this.canvas,
       alpha: true,
       antialias: true,
+      // antialias: window.devicePixelRatio === 1,
     });
 
-    document.body.appendChild(this.renderer.domElement);
+    this.container.appendChild(this.renderer.domElement);
 
     this.renderer.setSize(this.width, this.height);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -94,10 +112,11 @@ export default class Sketch {
     return new Promise((resolve) => {
       this.gltfLoader.load("models/brain.glb", (gltf) => {
         this.brain = gltf.scene.children[0];
-        // this.scene.add(brain);
 
-        this.geometry = new THREE.ConeGeometry(0.003, 0.005, 10);
-        // this.geometry = new THREE.IcosahedronGeometry(0.005, 1);
+        // this.geometry = new THREE.ConeGeometry(0.003, 0.005, 10);
+        // this.geometry = new THREE.IcosahedronGeometry(0.002, 1);
+        // this.geometry = new THREE.OctahedronGeometry(0.003, 1);
+        this.geometry = new THREE.TetrahedronGeometry(0.003, 1);
         this.material = new THREE.ShaderMaterial({
           wireframe: true,
           vertexShader: require("./static/shaders/brain.vertex.glsl"),
@@ -110,6 +129,7 @@ export default class Sketch {
             uHover: { value: this.uniforms.uHover },
           },
         });
+
         this.count = this.brain.geometry.attributes.position.count;
 
         this.instancedMesh = new InstancedUniformsMesh(
@@ -153,6 +173,8 @@ export default class Sketch {
           );
         }
 
+        this.gui.add(this.material, "wireframe");
+
         resolve();
       });
     });
@@ -163,7 +185,8 @@ export default class Sketch {
   }
 
   update() {
-    this.camera.position.z = this.isMobile ? 2 : 1.2;
+    this.camera.lookAt(new THREE.Vector3());
+    this.camera.position.z = this.isMobile ? 1.8 : 1;
   }
 
   checkMobile() {
@@ -211,27 +234,36 @@ export default class Sketch {
     const x = (e.clientX / this.width) * 2 - 1;
     const y = -((e.clientY / this.height) * 2 - 1);
 
+    this.mouse.set(x, y);
+
     gsap.to(this.camera.position, {
-      x: () => x * 0.1,
+      x: () => x * 0.15,
       y: () => y * 0.1,
       duration: 0.5,
     });
 
-    this.mouse.set(x, y);
     this.raycaster.setFromCamera(this.mouse, this.camera);
+
     this.intersects = this.raycaster.intersectObject(this.brain);
 
     if (this.intersects.length === 0) {
       //   console.log("mouseleave");
-      this.animateUniformsHover(0);
+      if (this.hover) {
+        this.hover = false;
+        this.animateUniformsHover(0);
+      }
     } else {
       //   console.log("mouseenter");
-      this.animateUniformsHover(1);
+      if (!this.hover) {
+        this.hover = true;
+        this.animateUniformsHover(this.uniforms.maxHover);
+      }
 
       gsap.to(this.point, {
-        x: () => this.intersects[0]?.point.x,
-        y: () => this.intersects[0]?.point.y,
-        z: () => this.intersects[0]?.point.z,
+        x: () => this.intersects[0]?.point.x || 0,
+        y: () => this.intersects[0]?.point.y || 0,
+        z: () => this.intersects[0]?.point.z || 0,
+        overwrite: true,
         duration: 0.3,
         onUpdate: () => {
           for (let i = 0; i < this.instancedMesh.count; i++) {
@@ -246,6 +278,30 @@ export default class Sketch {
     window.addEventListener("resize", this.resize, { passive: true });
     window.addEventListener("mousemove", this.mousemove, { passive: true });
   }
+
+  addDebugPanel() {
+    //Debug
+    this.gui = new dat.GUI({ touchStyles: false });
+
+    this.gui
+      .addColor(this.debugObject, "colorBg")
+      .onChange(() => {
+        document.body.style.background = `radial-gradient(circle, ${
+          this.debugObject.colorBg + "da"
+        } 20%, ${this.debugObject.colorBg} 65%)`;
+      })
+      .name("backgroundColor");
+
+    this.gui
+      .add(this.uniforms, "maxHover")
+      .min(0.5)
+      .max(2)
+      .step(0.001)
+      .name("hover size")
+      .onFinishChange(() => {
+        this.material.uniforms.uHover.value = this.uniforms.maxHover;
+      });
+  }
 }
 
-new Sketch().init();
+new Sketch("#app").init();
