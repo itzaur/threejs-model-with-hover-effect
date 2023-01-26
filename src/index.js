@@ -5,6 +5,7 @@ import { InstancedUniformsMesh } from "three-instanced-uniforms-mesh";
 import { gsap } from "gsap";
 import * as dat from "lil-gui";
 
+const loadingBarElement = document.querySelector(".loading-bar");
 export default class Sketch {
   constructor(container) {
     this.container = document.querySelector(container);
@@ -63,6 +64,7 @@ export default class Sketch {
     this.createCamera();
     this.createRenderer();
     this.createLoader();
+    this.createOverlay();
     this.createRaycaster();
     this.checkMobile();
     this.addDebugPanel();
@@ -105,7 +107,40 @@ export default class Sketch {
   }
 
   createLoader() {
-    this.gltfLoader = new GLTFLoader();
+    this.loadingManager = new THREE.LoadingManager(
+      () => {
+        gsap.delayedCall(0.5, () => {
+          gsap.to(this.overlayMaterial.uniforms.uAlpha, {
+            value: 0,
+            duration: 3,
+          });
+          loadingBarElement.classList.add("ended");
+          loadingBarElement.style.transform = "";
+        });
+      },
+
+      (itemUrl, itemsLoaded, itemsTotal) => {
+        const progressRatio = itemsLoaded / itemsTotal;
+        loadingBarElement.style.transform = `scaleX(${progressRatio})`;
+      }
+    );
+
+    this.gltfLoader = new GLTFLoader(this.loadingManager);
+  }
+
+  createOverlay() {
+    this.overlayGeometry = new THREE.PlaneGeometry(2, 2, 1, 1);
+    this.overlayMaterial = new THREE.ShaderMaterial({
+      vertexShader: require("./static/shaders/overlay.vertex.glsl"),
+      fragmentShader: require("./static/shaders/overlay.fragment.glsl"),
+      // wireframe: true,
+      transparent: true,
+      uniforms: {
+        uAlpha: { value: 1 },
+      },
+    });
+    this.overlay = new THREE.Mesh(this.overlayGeometry, this.overlayMaterial);
+    this.scene.add(this.overlay);
   }
 
   loadModel() {
