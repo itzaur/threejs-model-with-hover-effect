@@ -3,7 +3,8 @@
     "watch": "webpack --watch",
     "start": "webpack serve",
     "build": "NODE_ENV=production webpack",
-    "build-dev": "webpack"
+    "build-dev": "webpack",
+    "deploy": "vercel --prod"
   },
   "homepage": "https://github.com/itzaur/threejs-model-with-hover-effect#readme",
   "devDependencies": {
@@ -28,6 +29,7 @@
   "dependencies": {
     "gsap": "^3.11.4",
     "three": "^0.148.0",
-    "three-instanced-uniforms-mesh": "^0.47.0"
+    "three-instanced-uniforms-mesh": "^0.47.0",
+    "vercel": "^28.13.1"
   }
 }
